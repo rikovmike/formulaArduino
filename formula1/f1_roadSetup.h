@@ -17,7 +17,7 @@ int safeBlocks[2]={3,4};
 int currPattern[9][4];
 int lastPatternResolveredPattern=1;
 
-int roadArray[27][4]={
+int roadArrayInit[27][4]={
     {1,0,0,1},
     {1,0,0,1},
     {1,0,0,1},
@@ -46,6 +46,9 @@ int roadArray[27][4]={
     {0,0,0,0},
     {0,0,0,0}
   };
+
+int roadArray[27][4];
+
 
 
 // ############## ROAD PATTERNS AHEAD!! ################### 

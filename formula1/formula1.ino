@@ -9,10 +9,8 @@ LiquidCrystalRus lcd( 6, 7, 2, 3, 4, 5);
 
 
 int gscore=0;
-int gspeed=0;
 
 int state=4;
-
 
 float distanceMonemtum=0;
 float accelerationPoint=0.8;
@@ -25,12 +23,7 @@ int analogPin = A3;
 // car setup
 int carPos=0;
 int maxCarPos=26;
-int carStep=2;
-int tmpNapr=1;
-int counter=0;
 int steeringVal=0;
-int lastTile=0;
-int lastCoordPos=-1;
 int carTilesFilled[4]={99,99,99,99};
 int deadTile=0;
 
@@ -97,7 +90,12 @@ void statePreStartScreen(){
     titleStringsAnims[0]=0;
     titleStringsAnims[1]=1;
     titleStringsAnims[2]=0;
+    gscore=0;
     state=5;
+    memcpy(roadArray, roadArrayInit, sizeof(roadArrayInit));
+    distanceBlocks=0;
+    blocksCursor=0;
+    distanceMonemtum=0;
 }
 
 
@@ -165,35 +163,37 @@ void stateStartScreen(){
 }
 
 
+void ffxAnimateScreenWave(int sybmol=255){
+  
+    for (int i=-5;i<26;i++){
+      //1st string
+      if (i>=0&&i<=19){
+        for (int j=0;j<4;j++){
+          lcd.setCursor(i,j);
+          lcd.write(byte(sybmol));
+        }
+
+      }
+      delay(10);
+    }
+
+    for (int i=-5;i<26;i++){
+      //1st string
+      if (i>=0&&i<=19){
+        for (int j=0;j<4;j++){
+          lcd.setCursor(i,j);
+          lcd.print(" ");
+        }
+
+      }
+      delay(10);
+    }
+}
+
+
 // Trying to use in-state loop. Maybe it's fun ))
 void statePostStartScreen(){
-
-    for (int i=-5;i<26;i++){
-      //1st string
-      if (i>=0&&i<=19){
-        for (int j=0;j<4;j++){
-          lcd.setCursor(i,j);
-          lcd.write(byte(255));
-        }
-
-      }
-      delay(10);
-    }
-
-    for (int i=-5;i<26;i++){
-      //1st string
-      if (i>=0&&i<=19){
-        for (int j=0;j<4;j++){
-          lcd.setCursor(i,j);
-          lcd.write("");
-        }
-
-      }
-      delay(10);
-    }
-
-
-    
+    ffxAnimateScreenWave();
     state=10;
 }
 
@@ -201,7 +201,6 @@ void statePostStartScreen(){
 
 void stateDie(){
     acceleration=0;
-    gspeed=0;
     drawRoad();
     char rndChar[9]={'*','*','*','+','+','.','.','.'};
     for (int i=0;i<9;i++){
@@ -225,8 +224,11 @@ void stateDie(){
 
 
 void stateGameOver(){
-  lcd.setCursor(8,1);
-  lcd.print("GAME OVER");
+  lcd.setCursor(4,1);
+  lcd.print(" GAME  OVER ");
+  delay(1300);
+  ffxAnimateScreenWave(42);
+  state=4;
 }
 
 
@@ -239,6 +241,8 @@ void stateGame(){
     acceleration+=0.005;
   }
 
+
+
   steeringVal = analogRead(analogPin); 
   carPos=32-int(steeringVal/32);
   if (carPos>maxCarPos){carPos=maxCarPos;}
@@ -249,7 +253,6 @@ void stateGame(){
     checkCarTile(i);
   }
 
-
   // Mover
   distanceMonemtum+=acceleration;
   if (distanceMonemtum>1){
@@ -258,7 +261,7 @@ void stateGame(){
     blocksCursor++;
     roadMoveStep();
   }
-  
+  drawScore();
 }
 
 void drawRoad(){
@@ -276,7 +279,7 @@ void drawRoad(){
         }
         lcd.write(byte(roadBlock));
         if (curs==0){
-          checkColisiion(j,roadBlock);
+          checkColisiion(j,roadArray[i][j]);
         }
       }else{
         if (curs!=0){
@@ -295,7 +298,7 @@ void drawRoad(){
 
 void roadMoveStep(){
 
-
+  gscore+=1;
   if (blocksCursor>9){
     switch (lastPatternResolveredPattern) {
       case 1:
@@ -407,9 +410,7 @@ void checkColisiion(int tileNum, int roadBlock){
       collision=true;
       if (roadBlock>9){
         collision=false;
-      }
-      /*
-      if (roadBlock<9){
+      }else{
         for (int i=0;i<(sizeof(safeBlocks) / sizeof(int));i++){
           if (roadBlock!=safeBlocks[i]){
             collision=true;  
@@ -417,24 +418,49 @@ void checkColisiion(int tileNum, int roadBlock){
             collision=false;  
           }
         }
-      
-      }
-      */
-     
-    }      
 
-    lcd.setCursor(19,2);
-    lcd.write(roadBlock);
+      }
+    }      
 
    if (collision){
     //DEAD!
-    //deadTile=tileNum;
-    //state=11; 
-    lcd.setCursor(19,1);
-    lcd.write('!');
-    
-   }else{
-    lcd.setCursor(19,1);
-    lcd.write('.');
+    deadTile=tileNum;
+    state=11; 
    }
+}
+
+
+
+void drawScore(){
+  lcd.setCursor(18,0);
+  lcd.print("$K");
+  lcd.setCursor(18,1);
+  lcd.print(ExtractDigit(gscore,3));
+  lcd.print(ExtractDigit(gscore,6));
+  lcd.setCursor(18,2);
+  lcd.print(ExtractDigit(gscore,2));
+  lcd.print(ExtractDigit(gscore,5));
+  lcd.setCursor(18,3);
+  lcd.print(ExtractDigit(gscore,1));
+  lcd.print(ExtractDigit(gscore,4));
+}
+
+
+int ExtractDigit(int v, int p)
+{
+  return int(v/(pow(10,p-1))) - int(v/(pow(10,p)))*10; 
+}
+
+
+void templateReverse(int arrTmpl[9][4]){
+  int bufsize=4;
+  for (int j=0;j<9;j++){
+      int buf[4];
+      for (int i = 0; i < 4; i++) {
+        buf[i] = arrTmpl[j][i];
+      }
+      for (int i = 0; i < 4; i++) {
+        arrTmpl[j][i] = buf[3 - i];
+      }
+  }
 }
