@@ -6,8 +6,6 @@ LiquidCrystalRus lcd( 12, 13, 8, 9, 10, 11);
 
 
 
-
-
 int gscore=0;
 
 int state=4;
@@ -30,16 +28,16 @@ int deadTile=0;
 
 // TITLE data
 // Too lazy for it. Setting FULL 20-char strings ((
-char title_string1[20]={' ',' ',' ',' ',' ','F','O','R','M','U','L','A',' ',' ',' ',' ',' ',' ',' ',' '};
-char title_string2[20]={' ',' ',' ',' ',' ',' ',' ',' ','A','R','D','U','I','N','O',' ',' ',' ',' ',' '};
-char title_message1[]="steer to start";
+const char title_string1[20] PROGMEM = {' ',' ',' ',' ',' ','F','O','R','M','U','L','A',' ',' ',' ',' ',' ',' ',' ',' '};
+const char title_string2[20] PROGMEM = {' ',' ',' ',' ',' ',' ',' ',' ','A','R','D','U','I','N','O',' ',' ',' ',' ',' '};
+const char title_message1[] = "steer to start"; // Not nessersary to flash this string. Code to read it will be more painful, than few bytes of RAM, used by it. I think...
 
 int titleStringsAnims[3]={0,0,0};
 
 int animPosChars[12]{5,5,4,4,3,3,2,2,1,1,0,0};
 
-
-
+String ingameMessage="";
+int ingameMessageTime=0;
  
 void setup()
 {
@@ -48,7 +46,11 @@ void setup()
   
   lcd.begin(20, 4); 
   for (int i=0;i<=5;i++){
-    lcd.createChar(i, carFrames[i]);
+    byte tmpChar[8];
+    for (int j=0;j<8;j++){
+      tmpChar[j]=pgm_read_byte_near(carFrames[i]+j);
+    }
+    lcd.createChar(i, tmpChar);
   }
 
 
@@ -91,8 +93,6 @@ void loop()
 
 void statePreStartScreen(){
 
-  
-  
     titleStringsAnims[0]=0;
     titleStringsAnims[1]=1;
     titleStringsAnims[2]=0;
@@ -102,6 +102,8 @@ void statePreStartScreen(){
     distanceBlocks=0;
     blocksCursor=0;
     distanceMonemtum=0;
+    lastPatternResolveredPattern=1;
+    ingameMessageTime=0;
 }
 
 
@@ -117,7 +119,7 @@ void stateStartScreenAnim(){
         }
         for (int i=0;i<titleStringsAnims[0];i++){
            lcd.setCursor(i,0);
-           lcd.write(title_string1[i]);
+           lcd.write(pgm_read_byte_near(&title_string1[i]));
         }
 
         // ARDUINO
@@ -128,7 +130,7 @@ void stateStartScreenAnim(){
         }
         for (int i=19-titleStringsAnims[0];i<20;i++){
            lcd.setCursor(i+1,1);
-           lcd.write(title_string2[i+1]);
+           lcd.write(pgm_read_byte_near(&title_string2[i+1]));
         }
         
         delay(50);
@@ -207,7 +209,7 @@ void statePostStartScreen(){
 
 void stateDie(){
     acceleration=0;
-    drawRoad();
+    drawRoad(false);
     char rndChar[9]={'*','*','*','+','+','.','.','.'};
     for (int i=0;i<9;i++){
       lcd.setCursor(i,deadTile);
@@ -241,7 +243,8 @@ void stateGameOver(){
 
 void stateGame(){
 
-  drawRoad();
+  drawRoad(true);
+  ffxIngameMessage();
 
   if (acceleration<accelerationPoint){
     acceleration+=0.005;
@@ -270,23 +273,28 @@ void stateGame(){
   drawScore();
 }
 
-void drawRoad(){
+void drawRoad(bool checkCollisions){
   int curs=0;
   for (int i=26-blocksCursor;i>=9-blocksCursor;i--){
     for (int j=0;j<=3;j++){
       lcd.setCursor((curs),j); 
       if (roadArray[i][j]>0){
-        // Check using special roadblocks from cistom blocks array
+        // Check using special roadblocks from custom blocks array
         int roadBlock=0;
+        if (curs==0&&checkCollisions){
+          int col=checkColisiion(j,roadArray[i][j]);
+          // If we get collision with powerup, remove powerup from pattern
+          if (col==1){
+            roadArray[i][j]=0;
+            roadBlock=0;
+          }
+        }
         if (roadArray[i][j]<9){
           roadBlock=roadBlocks[roadArray[i][j]];
         }else{
           roadBlock=roadArray[i][j];
         }
         lcd.write(byte(roadBlock));
-        if (curs==0){
-          checkColisiion(j,roadArray[i][j]);
-        }
       }else{
         if (curs!=0){
           lcd.write(' ');
@@ -302,78 +310,28 @@ void drawRoad(){
 }
 
 
+
+
+
 void roadMoveStep(){
 
   gscore+=1;
   if (blocksCursor>9){
-    switch (lastPatternResolveredPattern) {
-      case 1:
-         memcpy(currPattern, pattern1, sizeof(pattern1));
-         lastPatternResolveredPattern=pattern1_resolver[random(0, (sizeof(pattern1_resolver) / sizeof(int)))];
-        break;
-      case 2:
-         memcpy(currPattern, pattern2, sizeof(pattern2));
-         lastPatternResolveredPattern=pattern2_resolver[random(0, (sizeof(pattern2_resolver) / sizeof(int)))];
-        break;
-      case 3:
-         memcpy(currPattern, pattern3, sizeof(pattern3));
-         lastPatternResolveredPattern=pattern3_resolver[random(0, (sizeof(pattern3_resolver) / sizeof(int)))];
-        break;
-      case 4:
-         memcpy(currPattern, pattern4, sizeof(pattern4));
-         lastPatternResolveredPattern=pattern4_resolver[random(0, (sizeof(pattern4_resolver) / sizeof(int)))];
-        break;
-      case 5:
-         memcpy(currPattern, pattern5, sizeof(pattern5));
-         lastPatternResolveredPattern=pattern5_resolver[random(0, (sizeof(pattern5_resolver) / sizeof(int)))];
-        break;
-      case 6:
-         memcpy(currPattern, pattern6, sizeof(pattern6));
-         lastPatternResolveredPattern=pattern6_resolver[random(0, (sizeof(pattern6_resolver) / sizeof(int)))];
-        break;
-      case 7:
-         memcpy(currPattern, pattern7, sizeof(pattern7));
-         lastPatternResolveredPattern=pattern7_resolver[random(0, (sizeof(pattern7_resolver) / sizeof(int)))];
-        break;
-      case 8:
-         memcpy(currPattern, pattern8, sizeof(pattern8));
-         lastPatternResolveredPattern=pattern8_resolver[random(0, (sizeof(pattern8_resolver) / sizeof(int)))];
-        break;
-      case 9:
-         memcpy(currPattern, pattern9, sizeof(pattern9));
-         lastPatternResolveredPattern=pattern9_resolver[random(0, (sizeof(pattern9_resolver) / sizeof(int)))];
-        break;
-      case 10:
-         memcpy(currPattern, pattern10, sizeof(pattern10));
-         lastPatternResolveredPattern=pattern10_resolver[random(0, (sizeof(pattern10_resolver) / sizeof(int)))];
-        break;
-      case 11:
-         memcpy(currPattern, pattern11, sizeof(pattern11));
-         lastPatternResolveredPattern=pattern11_resolver[random(0, (sizeof(pattern11_resolver) / sizeof(int)))];
-        break;
-      case 12:
-         memcpy(currPattern, pattern12, sizeof(pattern12));
-         lastPatternResolveredPattern=pattern12_resolver[random(0, (sizeof(pattern12_resolver) / sizeof(int)))];
-        break;
-      case 13:
-         memcpy(currPattern, pattern13, sizeof(pattern13));
-         lastPatternResolveredPattern=pattern13_resolver[random(0, (sizeof(pattern13_resolver) / sizeof(int)))];
-        break;
-      case 14:
-         memcpy(currPattern, pattern14, sizeof(pattern14));
-         lastPatternResolveredPattern=pattern14_resolver[random(0, (sizeof(pattern14_resolver) / sizeof(int)))];
-        break;
-      case 15:
-         memcpy(currPattern, pattern15, sizeof(pattern15));
-         lastPatternResolveredPattern=pattern15_resolver[random(0, (sizeof(pattern15_resolver) / sizeof(int)))];
-        break;
-      default:
-         memcpy(currPattern, pattern1, sizeof(pattern1));
-         lastPatternResolveredPattern=pattern1_resolver[random(0, (sizeof(pattern1_resolver) / sizeof(int)))];
-        break;
+    for (int i=0;i<9;i++){
+      for (int j=0;j<4;j++){
+        currPattern[i][j]=pgm_read_byte_near(&patterns[lastPatternResolveredPattern-1][i][j]);
+        
+        // If epmty space, spawn random powerup:
+        if (currPattern[i][j]==0){
+          if (random(0,100)==9){
+            currPattern[i][j]=bonusBlocks[random(0,2)];
+          }
+        }
+      }
     }
-    
-    
+
+    lastPatternResolveredPattern=pgm_read_byte_near(&pattern_resolvers[lastPatternResolveredPattern-1][random(0, 7)]);
+
     blocksCursor=0;
 
     for (int i=17;i>=0;i--){
@@ -409,32 +367,82 @@ void checkCarTile(int tileNum){
 
 
 
-void checkColisiion(int tileNum, int roadBlock){
-   bool collision=false;
-    
-    if (carTilesFilled[tileNum]!=99){
-      collision=true;
-      if (roadBlock>9){
-        collision=false;
-      }else{
-        for (int i=0;i<(sizeof(safeBlocks) / sizeof(int));i++){
-          if (roadBlock!=safeBlocks[i]){
-            collision=true;  
-          }else{
-            collision=false;  
-          }
-        }
-
+int checkColisiion(int tileNum, int roadBlock){
+   bool collision=true,iamsafe=false,iambonus=false;
+   int ret=0;
+   
+   
+   
+   if (carTilesFilled[tileNum]!=99){
+    for (int i=0;i<(sizeof(safeBlocks) / sizeof(int));i++){
+      if (roadBlock==safeBlocks[i]){
+        iamsafe=true;  
       }
-    }      
+    }
 
-   if (collision){
-    //DEAD!
-    deadTile=tileNum;
-    state=11; 
-   }
+    for (int i=0;i<(sizeof(bonusBlocks) / sizeof(int));i++){
+      if (roadBlock==bonusBlocks[i]){
+        iambonus=true;  
+      }
+    }
+
+    
+
+      if (roadBlock==0||roadBlock>9||iamsafe||iambonus){
+        collision=false;
+      }
+
+      Serial.println(roadBlock);
+  
+      if (iambonus){
+        ffxLaunchPowerup(tileNum,roadBlock);
+        ret=1;
+      }
+  
+     if (collision){
+      //DEAD!
+      deadTile=tileNum;
+      state=11; 
+     }
+    
+    
+  }      
+
+  return ret;
+
 }
 
+
+// Powerup effect. Pauses game for short time to show animation.
+void ffxLaunchPowerup(int posy,int powrpTile){
+    if (powrpTile==5){
+      gscore+=500;
+      ingameMessage="+500$";
+    }
+    if (powrpTile==6){
+      accelerationPoint+=accelerationPoint/100;
+      ingameMessage="CHARGE!";
+    }
+
+    ingameMessageTime=30;
+    
+}
+
+
+
+// Ingame message drawer
+void ffxIngameMessage(){
+  int startX=0;
+  int txtSize=0;
+  if (ingameMessageTime>0)  {
+    ingameMessageTime--;
+    Serial.println(ingameMessageTime);
+    startX=9-(ingameMessage.length())/2;
+    lcd.setCursor(startX,1);
+    lcd.print(ingameMessage);
+  }
+  
+}
 
 
 void drawScore(){

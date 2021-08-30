@@ -1,5 +1,5 @@
 
-byte carFrames[6][8]{
+const byte carFrames[6][8] PROGMEM = {
   
 
     {
