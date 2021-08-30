@@ -1,5 +1,5 @@
 #include <LiquidCrystalRus.h>
-LiquidCrystalRus lcd( 6, 7, 2, 3, 4, 5);
+LiquidCrystalRus lcd( 12, 13, 8, 9, 10, 11);
 
 #include "f1_carSetup.h"
 #include "f1_roadSetup.h"
@@ -43,6 +43,9 @@ int animPosChars[12]{5,5,4,4,3,3,2,2,1,1,0,0};
  
 void setup()
 {
+  pinMode(7, OUTPUT);
+
+  
   lcd.begin(20, 4); 
   for (int i=0;i<=5;i++){
     lcd.createChar(i, carFrames[i]);
@@ -87,6 +90,9 @@ void loop()
 
 
 void statePreStartScreen(){
+
+  
+  
     titleStringsAnims[0]=0;
     titleStringsAnims[1]=1;
     titleStringsAnims[2]=0;
@@ -241,10 +247,10 @@ void stateGame(){
     acceleration+=0.005;
   }
 
-
+  tone(7, 50+100*acceleration, 50+100*acceleration);
 
   steeringVal = analogRead(analogPin); 
-  carPos=32-int(steeringVal/32);
+  carPos=32-int(round(steeringVal/32));
   if (carPos>maxCarPos){carPos=maxCarPos;}
 
  
