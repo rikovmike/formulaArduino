@@ -1,3 +1,14 @@
+/*
+ * FORMULA ARDUINO
+ * Road setup header file
+ * 
+ * Using PROGMEM directive to store this massive data on flash, not in RAM
+ * 
+ * Developed by rikovmike 
+ * mike@rikovmike.ru
+ * 
+ * ver a1.0 
+ */
 
 /* road blocks IDs:
 
@@ -15,14 +26,19 @@
 */
 
 
-const int roadBlocks[7] {0,255,35,42,46,36,201};
+const int roadBlocks[7] {0,255,35,42,46,36,201}; // Charcodes of blocks by ID
 
-const int safeBlocks[2] {3,4};
+const int safeBlocks[2] {3,4};  //Safe blocks ID's
 
-const int bonusBlocks[2] {5,6};
+const int bonusBlocks[2] {5,6};  //Bonus blocks ID's
 
-int currPattern[9][4];
-int lastPatternResolveredPattern=1;
+int currPattern[9][4];    // Current pattern array. Used by RoadMover to fill offscreen part of draw-buffer.
+int lastPatternResolveredPattern=1; // Last selected pattern by resolver. We use resolvers for smooth and correct use of road patterns without casualities
+
+
+/*
+ * Main Road array initial data. Saving in RAM. 
+ */
 
 const int roadArrayInit[27][4]={
     {1,0,0,1},
@@ -54,7 +70,17 @@ const int roadArrayInit[27][4]={
     {0,0,0,0}
   };
 
+/*
+ * Main Road Array. Used by Road mover and Road drawer
+ */
+
 int roadArray[27][4];
+
+
+/*
+ * Road patterns
+ */
+
 
 const int patterns[15][9][4] PROGMEM={
   
@@ -254,6 +280,10 @@ const int patterns[15][9][4] PROGMEM={
 
 };
 
+
+/*
+ * Pattern resolvers. Each pattern can cast next pattern only by resolver rules!
+ */
 
 const int pattern_resolvers[15][7] PROGMEM= {
     {1,2,3,4,7,10,13},

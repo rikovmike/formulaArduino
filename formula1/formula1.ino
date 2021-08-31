@@ -1,50 +1,87 @@
-#include <LiquidCrystalRus.h>
-LiquidCrystalRus lcd( 12, 13, 8, 9, 10, 11);
+ /*
+ * FORMULA ARDUINO
+ * Simple racing game for arduino boards
+ * with 20x4 lcd display and buzzer sound 
+ * effects support
+ * 
+ * Developed by rikovmike 
+ * mike@rikovmike.ru
+ * 
+ * ver a1.0
+ */
 
+/*
+ * TODO: Add sfx sequencer for music and sfx
+ */
+
+/* Using LiquidCrystal lib
+ */
+#include <LiquidCrystal.h>
+LiquidCrystal lcd( 12, 13, 8, 9, 10, 11); // Change it to your LCD connetcions
+
+/*
+ * Including some header files with initial game data
+ */
 #include "f1_carSetup.h"
 #include "f1_roadSetup.h"
 
+/*
+ * Main game variables
+ */
+int gscore=0; // Global score
+
+int state=4; // State-machine state
 
 
-int gscore=0;
+/*
+ * Car physics (ho-ho)
+ */
+float distanceMonemtum=0;     // Special variable to move road tiles for 1 step (character) forward
+float accelerationPoint=0.8;  // Acc will grow up to this value for smooth speeding up
+float acceleration=0;         // Current acceleration
+     
+int blocksCursor=0;           //Draw-buffer cursor
 
-int state=4;
-
-float distanceMonemtum=0;
-float accelerationPoint=0.8;
-float acceleration=0;
-int distanceBlocks=0;
-int blocksCursor=0;
-
-int analogPin = A3;
+int analogPin = A3;           //Analog pin for steering wheel
 
 // car setup
-int carPos=0;
-int maxCarPos=26;
-int steeringVal=0;
-int carTilesFilled[4]={99,99,99,99};
-int deadTile=0;
+int carPos=0;                 //Current car position on road
+int maxCarPos=26;             //Max position by y.
+int steeringVal=0;            //Current data from analogue pin
+int carTilesFilled[4]={99,99,99,99};  //Using 4 free vert characters on each lcd sctring to draw car.
+int deadTile=0;               //This is for game over effect
 
 
-// TITLE data
-// Too lazy for it. Setting FULL 20-char strings ((
+/* 
+ *  TITLE data
+ *  Too lazy for it. Setting FULL 20-char strings ((
+ *  Flashing title text to PROGMEM to save RAM space
+*/
 const char title_string1[20] PROGMEM = {' ',' ',' ',' ',' ','F','O','R','M','U','L','A',' ',' ',' ',' ',' ',' ',' ',' '};
 const char title_string2[20] PROGMEM = {' ',' ',' ',' ',' ',' ',' ',' ','A','R','D','U','I','N','O',' ',' ',' ',' ',' '};
 const char title_message1[] = "steer to start"; // Not nessersary to flash this string. Code to read it will be more painful, than few bytes of RAM, used by it. I think...
 
-int titleStringsAnims[3]={0,0,0};
+int titleStringsAnims[3]={0,0,0};    //Utility array for animation effect
 
-int animPosChars[12]{5,5,4,4,3,3,2,2,1,1,0,0};
+int animPosChars[12]{5,5,4,4,3,3,2,2,1,1,0,0};  //Utility array for draw car tiles, especially in-between characters
 
-String ingameMessage="";
-int ingameMessageTime=0;
+String ingameMessage="";  //In-game message string. Used by in-game message effect
+int ingameMessageTime=0;  //Used by in-game message effect
+
+
+/*
+ * Setup
+ */
+
  
 void setup()
 {
-  pinMode(7, OUTPUT);
+  pinMode(7, OUTPUT); // Buzzer pin. PWM7.
 
   
-  lcd.begin(20, 4); 
+  lcd.begin(20, 4);   //Setting up LCD
+
+  // Adding car custom characters to LCD. Reading from PROGMEM
   for (int i=0;i<=5;i++){
     byte tmpChar[8];
     for (int j=0;j<8;j++){
@@ -55,41 +92,51 @@ void setup()
 
 
 }
+
+
+/*
+ * Main loop
+ */
  
 void loop()
 {
 
+  /*
+   * Classic state machine!
+   */
   switch(state){
     case 4:
-      statePreStartScreen();
+      statePreStartScreen(); // Preparing initial vars
       break;    
     case 5:
-      stateStartScreenAnim();
+      stateStartScreenAnim(); // Cool title screen animation
       break;    
     case 6:
-      stateStartScreen();
+      stateStartScreen(); // Title screen
       break;  
     case 7:
-      statePostStartScreen();
+      statePostStartScreen(); // Cool post-title animation
       break;  
     case 10:
-      stateGame();
+      stateGame();  // Game logic
       break;    
     case 11:
-      stateDie();
+      stateDie();  // Duying logic
       break;    
     case 90:
-      stateGameOver();
+      stateGameOver();  // Game over screen and animation
       break;    
     default:
-      stateStartScreen();
+      stateStartScreen(); // If state unknown - start over
       break;    
     }
 
 }
 
 
-
+/*
+ *  START SCREEN BLOCK. States 4,5,6
+ */
 
 void statePreStartScreen(){
 
@@ -99,12 +146,12 @@ void statePreStartScreen(){
     gscore=0;
     state=5;
     memcpy(roadArray, roadArrayInit, sizeof(roadArrayInit));
-    distanceBlocks=0;
     blocksCursor=0;
     distanceMonemtum=0;
     lastPatternResolveredPattern=1;
     ingameMessageTime=0;
 }
+
 
 
 void stateStartScreenAnim(){
@@ -207,40 +254,11 @@ void statePostStartScreen(){
 
 
 
-void stateDie(){
-    acceleration=0;
-    drawRoad(false);
-    char rndChar[9]={'*','*','*','+','+','.','.','.'};
-    for (int i=0;i<9;i++){
-      lcd.setCursor(i,deadTile);
-      lcd.write(rndChar[i]);
-      lcd.setCursor(i,deadTile-(int(round(float(i)/4))));
-      lcd.write(rndChar[int(float(i)+1.4)]);
-      lcd.setCursor(i,deadTile-(int(round(float(i)/1))));
-      lcd.write(rndChar[int(float(i)+1.6)]);
-      lcd.setCursor(i,deadTile+(int(round(float(i)/4))));
-      lcd.write(rndChar[int(float(i)+1.4)]);
-      lcd.setCursor(i,deadTile+(int(round(float(i)/1))));
-      lcd.write(rndChar[int(float(i)+1.6)]);
+/*
+ * Game logic block
+ */
 
-      delay(0+i*10);
-    }
-    state=90;
-}
-
-
-
-
-void stateGameOver(){
-  lcd.setCursor(4,1);
-  lcd.print(" GAME  OVER ");
-  delay(1300);
-  ffxAnimateScreenWave(42);
-  state=4;
-}
-
-
-
+// State 10
 void stateGame(){
 
   drawRoad(true);
@@ -250,13 +268,13 @@ void stateGame(){
     acceleration+=0.005;
   }
 
-  tone(7, 50+100*acceleration, 50+100*acceleration);
+  tone(7, 50+100*acceleration, 50+100*acceleration); // Make some noise :)
 
   steeringVal = analogRead(analogPin); 
-  carPos=32-int(round(steeringVal/32));
-  if (carPos>maxCarPos){carPos=maxCarPos;}
+  carPos=32-int(round(steeringVal/32)); // Adapting steering data to screen coords
+  if (carPos>maxCarPos){carPos=maxCarPos;} // Bad practice, but fast ) TODO: Make more precise calculations
 
- 
+  // Check and draw car tiles. Drawing is sub-char
   for (int i=0;i<=3;i++){
     carTilesFilled[i]=99;
     checkCarTile(i);
@@ -266,13 +284,20 @@ void stateGame(){
   distanceMonemtum+=acceleration;
   if (distanceMonemtum>1){
     distanceMonemtum=0;
-    distanceBlocks++;
     blocksCursor++;
     roadMoveStep();
   }
+
+  
   drawScore();
 }
 
+
+/* 
+ *  Draw road function. Take current state of draw buffer and draw it to screen.
+ *  Also calling check-collision function while drawing
+ */
+ 
 void drawRoad(bool checkCollisions){
   int curs=0;
   for (int i=26-blocksCursor;i>=9-blocksCursor;i--){
@@ -311,7 +336,10 @@ void drawRoad(bool checkCollisions){
 
 
 
-
+/*
+ * Road mover. Moving draw buffer towards player. Filling off-screen buffer part with new patterns.
+ * Patterns selected by pattern-resolver mechanism
+ */
 
 void roadMoveStep(){
 
@@ -350,7 +378,7 @@ void roadMoveStep(){
 }
 
 
-
+// Car drawer
 void checkCarTile(int tileNum){
   int myCoord=tileNum*8;
     lcd.setCursor(0,tileNum);  
@@ -366,13 +394,13 @@ void checkCarTile(int tileNum){
 }
 
 
+// Ultra-precision fast and robust car physics collision detection!
 
 int checkColisiion(int tileNum, int roadBlock){
    bool collision=true,iamsafe=false,iambonus=false;
    int ret=0;
-   
-   
-   
+  
+   // Is safe block?   
    if (carTilesFilled[tileNum]!=99){
     for (int i=0;i<(sizeof(safeBlocks) / sizeof(int));i++){
       if (roadBlock==safeBlocks[i]){
@@ -380,30 +408,30 @@ int checkColisiion(int tileNum, int roadBlock){
       }
     }
 
+    // Or maybe bonus block?
     for (int i=0;i<(sizeof(bonusBlocks) / sizeof(int));i++){
       if (roadBlock==bonusBlocks[i]){
         iambonus=true;  
       }
     }
 
-    
+    // If so, or if it just a road - no colision at all
+    if (roadBlock==0||roadBlock>9||iamsafe||iambonus){
+      collision=false;
+    }
 
-      if (roadBlock==0||roadBlock>9||iamsafe||iambonus){
-        collision=false;
-      }
+    //If there is a bonus, so take it. Returning "1" to road drawer to remove bonus from road data
+    if (iambonus){
+      ffxLaunchPowerup(tileNum,roadBlock);
+      ret=1;
+    }
 
-      Serial.println(roadBlock);
-  
-      if (iambonus){
-        ffxLaunchPowerup(tileNum,roadBlock);
-        ret=1;
-      }
-  
-     if (collision){
-      //DEAD!
-      deadTile=tileNum;
-      state=11; 
-     }
+   // Oh, no!
+   if (collision){
+    //DEAD!
+    deadTile=tileNum;
+    state=11; 
+   }
     
     
   }      
@@ -412,6 +440,49 @@ int checkColisiion(int tileNum, int roadBlock){
 
 }
 
+
+
+/*
+ *  END GAME BLOCK. States 11,90
+ */
+
+void stateDie(){
+    acceleration=0;
+    drawRoad(false);
+    char rndChar[9]={'*','*','*','+','+','.','.','.'};
+    for (int i=0;i<9;i++){
+      lcd.setCursor(i,deadTile);
+      lcd.write(rndChar[i]);
+      lcd.setCursor(i,deadTile-(int(round(float(i)/4))));
+      lcd.write(rndChar[int(float(i)+1.4)]);
+      lcd.setCursor(i,deadTile-(int(round(float(i)/1))));
+      lcd.write(rndChar[int(float(i)+1.6)]);
+      lcd.setCursor(i,deadTile+(int(round(float(i)/4))));
+      lcd.write(rndChar[int(float(i)+1.4)]);
+      lcd.setCursor(i,deadTile+(int(round(float(i)/1))));
+      lcd.write(rndChar[int(float(i)+1.6)]);
+
+      delay(0+i*10);
+    }
+    state=90;
+}
+
+void stateGameOver(){
+  lcd.setCursor(4,1);
+  lcd.print(" GAME  OVER ");
+  delay(1300);
+  ffxAnimateScreenWave(42);
+  state=4;
+}
+
+
+
+
+
+
+/*
+ *  Special effects block
+ */
 
 // Powerup effect. Pauses game for short time to show animation.
 void ffxLaunchPowerup(int posy,int powrpTile){
@@ -444,7 +515,7 @@ void ffxIngameMessage(){
   
 }
 
-
+// Draw score on screen
 void drawScore(){
   lcd.setCursor(18,0);
   lcd.print("$K");
@@ -460,12 +531,22 @@ void drawScore(){
 }
 
 
+
+
+/*
+ * Utilites
+ */
+
+//Extracting digit from integer number. v - number, p - number of digit to extract
 int ExtractDigit(int v, int p)
 {
   return int(v/(pow(10,p-1))) - int(v/(pow(10,p)))*10; 
 }
 
-
+/*
+ * Not used function. 
+ * TODO: Make road template reverse method to save flash memory space
+ */
 void templateReverse(int arrTmpl[9][4]){
   int bufsize=4;
   for (int j=0;j<9;j++){

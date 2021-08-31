@@ -1,3 +1,17 @@
+/*
+ * FORMULA ARDUINO
+ * Car setup header file
+ * 
+ * Using PROGMEM directive to store this massive data on flash, not in RAM
+ * 
+ * Developed by rikovmike 
+ * mike@rikovmike.ru
+ * 
+ * ver a1.0
+ * 
+ */
+
+
 
 const byte carFrames[6][8] PROGMEM = {
   
