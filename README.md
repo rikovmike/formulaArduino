@@ -1,5 +1,9 @@
+![screenshot](https://user-images.githubusercontent.com/32895646/131472930-fa562ab3-0102-4e1c-ab85-b0b49a422d69.png)
+
 # Formula Arduino
 Simple racing game for Arduino and WH2004 LCD display with analogue steering controls and optional buzzer sound effects. There no buttons or other components for controls. Only one resistor for steering wheel emulation.
+
+![fa_gif2](https://user-images.githubusercontent.com/32895646/131472952-5126ce3b-271d-4012-9911-aab0b0fed8c0.gif)
 
 # Hardware
 Theoretically, any Arduino with digital and analog ports sufficient to connect a symbolic LCD screen and a variable resistor for control is enough for you. You can connect a buzzer for sound effects, but this is optional.
