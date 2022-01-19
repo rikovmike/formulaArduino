@@ -19,6 +19,10 @@ Use this simple scheme to build a game machine:
 ![FormulaArduinoScheme](https://user-images.githubusercontent.com/32895646/131463721-aac58252-73eb-4bbb-8e03-b4c0f70f7468.png)
 
 
+#Emulator Demo (some screen glithes)
+
+https://wokwi.com/arduino/projects/321213469665788500
+
 # Any questions?
 Please, feel free to contact me for any questions about this project. 
 
